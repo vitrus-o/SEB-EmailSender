@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Online Voting Application Approved - VSU FC SEB</title>
+    <title>Online Voting Application - Action Required - VSU FC SEB</title>
     <style>
       body,
       table,
@@ -43,7 +43,7 @@
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
       }
       .header {
-        background-color: #004499;
+        background-color: #d32f2f;
         color: #ffffff;
         padding: 25px 0;
         border-radius: 10px 10px 0 0;
@@ -84,15 +84,29 @@
         color: #777777;
         border-top: 1px solid #e0e0e0;
       }
-      .alert-box {
-        background-color: #e6f7ff;
-        color: #004499;
+      .warning-box {
+        background-color: #fff3cd;
+        color: #856404;
+        padding: 15px;
+        border-left: 5px solid #ffc107;
+        margin: 25px 0;
+        border-radius: 4px;
+      }
+      .info-box {
+        background-color: #e7f3ff;
+        color: #004085;
         padding: 15px;
         border-left: 5px solid #004499;
         margin: 25px 0;
         border-radius: 4px;
-        font-weight: bold;
-      } /* Blue alert box */
+      }
+      .reason-box {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+        border: 1px solid #dee2e6;
+      }
 
       @media screen and (max-width: 600px) {
         .container {
@@ -101,10 +115,6 @@
         }
         .content {
           padding: 20px 15px !important;
-        }
-        .banner-img {
-          max-width: 100% !important;
-          height: auto !important;
         }
       }
     </style>
@@ -137,7 +147,7 @@
                   align="center"
                   class="header"
                   style="
-                    background-color: #004499;
+                    background-color: #d32f2f;
                     color: #ffffff;
                     padding: 15px 0;
                     border-radius: 0;
@@ -153,7 +163,7 @@
                       letter-spacing: 0.5px;
                     "
                   >
-                    ONLINE VOTING APPLICATION APPROVED
+                    ONLINE VOTING APPLICATION - ACTION REQUIRED
                   </h1>
                 </td>
               </tr>
@@ -165,17 +175,28 @@
                   </p>
 
                   <p>
-                    We are pleased to inform you that your application for
-                    online voting in the <strong>FC Plebiscite</strong> has been
-                    <strong>OFFICIALLY APPROVED</strong> by the Faculty of
-                    Computing – Student Election Board (FC-SEB).
+                    We regret to inform you that your application for online
+                    voting in the <strong>FC Plebiscite</strong> could not be
+                    approved at this time.
                   </p>
 
-                  <p>
-                    The registered email address,
-                    <strong>[WHITELISTED EMAIL]</strong>, has been secured and
-                    included in the Final Online Voters Master List.
-                  </p>
+                  <div class="reason-box">
+                    <h3 style="color: #d32f2f; margin-top: 0; font-size: 16px">
+                      Reason for Rejection:
+                    </h3>
+                    <p style="margin: 0">
+                      <strong>[REAPPLY REASON]</strong>
+                    </p>
+                  </div>
+
+                  <div class="info-box">
+                    <p style="margin: 0; font-size: 14px">
+                      <strong>Good News:</strong> You may reapply for online
+                      voting by submitting a new application with the corrected
+                      information. Please ensure all details meet the
+                      requirements before resubmitting.
+                    </p>
+                  </div>
 
                   <div
                     style="
@@ -189,38 +210,52 @@
                       Plebiscite Details:
                     </h3>
                     <p style="margin-bottom: 5px">
-                      <strong>Date:</strong> Wednesday, November 26, 2025
+                      <strong>Date:</strong> [ELECTION DATE]
                     </p>
                     <p style="margin-bottom: 5px">
-                      <strong>Voting Hours:</strong> 8:00 AM – 5:00 PM
+                      <strong>Voting Hours:</strong> [START TIME] – [END TIME]
                     </p>
                     <p style="margin-bottom: 0">
-                      <strong>Action:</strong> The secure ballot link
-                      will be sent to <strong>[WHITELISTED EMAIL]</strong> an
-                      hour before the start of the voting period.
+                      <strong>Reapplication Deadline:</strong> You may reapply
+                      on/before <strong>November 25, 2025, 5:00 PM</strong>.
                     </p>
                   </div>
-                  <div
-                    class="alert-box"
-                    style="
-                      background-color: #fcd1d1;
-                      color: #000000;
-                      padding: 15px;
-                      border-left: 5px solid #8d1111;
-                      margin: 25px 0;
-                      border-radius: 4px;
-                      font-weight: normal;
-                    "
-                  >
+
+                  <div class="warning-box">
                     <p style="margin: 0; font-size: 14px">
-                      As an approved Online Voter, you are
-                      <strong>STRICTLY PROHIBITED</strong> from attempting to
-                      vote via the In-Person Voting mechanism.
+                      <strong>Important:</strong> If you choose not to reapply
+                      or your reapplication is not approved in time, you will
+                      need to participate via the
+                      <strong>In-Person Voting</strong> mechanism.
                     </p>
                   </div>
+
+                  <center>
+                    <a
+                      href="[REAPPLICATION LINK]"
+                      class="button"
+                      style="
+                        background-color: #007bff;
+                        color: #ffffff;
+                        text-decoration: none;
+                        padding: 12px 30px;
+                        border-radius: 6px;
+                        display: inline-block;
+                        font-weight: bold;
+                      "
+                    >
+                      Reapply Now
+                    </a>
+                  </center>
+
                   <p>
-                    Thank you for participating and helping us uphold a credible
-                    and transparent electoral process.
+                    If you have any questions or need assistance, please contact
+                    us at
+                    <a
+                      href="mailto:facultyofcomputingseb@gmail.com"
+                      style="color: #004499"
+                      >facultyofcomputingseb@gmail.com</a
+                    >.
                   </p>
 
                   <p style="margin-top: 30px">
