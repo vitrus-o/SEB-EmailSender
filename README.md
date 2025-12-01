@@ -1,176 +1,446 @@
-# FOC-SEB Email Sender
+# 📧 Email Sender for USSC Special Election & Plebiscite
 
-Automated email sender for Faculty of Computing - Student Election Board (FC-SEB) online voting applications.
+> **Easy-to-use automated email sender for election notifications and ballot distribution**
 
-## Features
-
-- Send approval emails for online voting
-- Send rejection emails with reapplication link
-- Single email or batch processing from CSV
-- Scheduled sending with countdown timer
-- Cancellation support (Ctrl+C)
-- Email preview and confirmation before sending
-- Automatic retry on failure
-
-## Prerequisites
-
-- Python 3.7 or higher
-- Gmail account with App Password enabled
-
-## Installation
-
-1. **Clone or download this repository**
-
-2. **Install required packages:**
-   ```bash
-   pip install python-dotenv
-   ```
-
-3. **Create a `.env` file** in the same directory with your credentials:
-   ```env
-   SMTP_SERVER=smtp.gmail.com
-   SMTP_PORT=587
-   SENDER_EMAIL=your_sender_email_here
-   SENDER_PASSWORD=your_app_password_here
-   REAPPLICATION_LINK=your_google_forms_link
-   ```
-
-   > **Important:** Use a Gmail App Password, not your regular password. 
-   > [Learn how to create an App Password](https://support.google.com/accounts/answer/185833)
-
-4. **Add `.env` to `.gitignore`** (if using Git):
-   ```
-   .env
-   ```
-
-## File Structure
-
-```
-FC-SEBEmailSender/
-├── send.py              # Main script
-├── email_approval_template.html  # Approval email template
-├── email_rejection_template.html # Rejection email template
-├── .env                          # Credentials (DO NOT COMMIT)
-├── approval.csv                  # Sample approval list
-├── rejection.csv                 # Sample rejection list
-└── README.md                     # This file
-```
-
-## CSV File Format
-
-### For Approval Emails (`approval.csv`)
-```csv
-email,name,student_id
-```
-
-**Required columns:** `email`, `name`, `student_id`
-
-### For Rejection Emails (`rejection.csv`)
-```csv
-email,name,student_id,rejection_reason
-```
-
-**Required columns:** `email`, `name`, `student_id`, `rejection_reason`
-
-## Usage
-
-### Basic Command Structure
-```bash
-python send_approval.py [OPTIONS]
-```
-
-### Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--mode` | Send mode: `single` or `batch` | `single` |
-| `--type` | Email type: `approval` or `reapply` | `approval` |
-| `--email` | Recipient email address (single mode) | - |
-| `--name` | Student name (single mode) | - |
-| `--id` | Student ID (single mode) | - |
-| `--csv` | Path to CSV file (batch mode) | - |
-| `--date` | Election date | `Wednesday, November 26, 2025` |
-| `--start` | Voting start time | `8:00 AM` |
-| `--end` | Voting end time | `5:00 PM` |
-| `--reason` | Rejection reason (single rejection) | - |
-| `--reapply-link` | Reapplication link | From `.env` file |
-| `--delay` | Delay before sending (seconds) | `30` |
-
-### Examples
-
-#### 1. Send Single Approval Email
-```bash
-python send_approval.py --mode single --type approval --email "jdlc67@gmail.com" --name "JUAN DE LA CRUZ" --id "67-1-01"
-```
-
-#### 2. Send Single Rejection Email
-```bash
-python send_approval.py --mode single --type rejection --email "student@gmail.com" --name "JOHN DOE" --id "23-1-12345" --reason "Invalid email domain - must use @jdlc.com"
-```
-
-#### 3. Batch Send Approval Emails
-```bash
-python send_approval.py --mode batch --type approval --csv approval.csv
-```
-
-#### 4. Batch Send Rejection Emails
-```bash
-python send_approval.py --mode batch --type rejection --csv rejection.csv
-```
-
-#### 5. Custom Election Details
-```bash
-python send_approval.py --mode batch --type approval --csv approval.csv --date "December 1, 2025" --start "9:00 AM" --end "6:00 PM"
-```
-
-#### 6. Send Immediately (No Delay)
-```bash
-python send_approval.py --mode batch --csv approval.csv --delay 0
-```
-
-#### 7. Send with 60 Second Delay
-```bash
-python send_approval.py --mode batch --csv approval.csv --delay 60
-```
-
-## Workflow
-
-1. **Prepare your CSV file** with student information
-2. **Run the command** with appropriate parameters
-3. **Review the preview** of recipients and details
-4. **Type `yes`** to confirm sending
-5. **Wait for countdown** (default 30 seconds)
-6. **Press Ctrl+C** anytime during countdown to cancel
-7. **Emails are sent** one by one with status updates
-
-## Cancellation
-
-You can cancel the scheduled send at any time by:
-- Pressing **Ctrl+C** during the countdown
-- Typing **no** when prompted for confirmation
-
-## Gmail App Password Setup
-
-1. Go to your Google Account settings
-2. Select **Security** > **2-Step Verification** (enable if not already)
-3. Go to **App passwords**
-4. Create account and name it appropriately
-5. Copy the generated 16-character password
-6. Use this password in your `.env` file
-
-## Limits
-
-- **Gmail Free:** 500 emails/day
-- **Gmail Workspace:** 2,000 emails/day
-- Script includes 1-second delay between emails to avoid rate limiting
-
-## Support
-
-For issues or questions, contact:
-- **Email:** facultyofcomputingseb@gmail.com
-
-## License
-
-This project is for internal use by FC-SEB for managing online voting applications.
+This tool helps you send professional emails to students for the USSC Special Election and Plebiscite. No coding experience needed!
 
 ---
+
+## 🎯 What Does This Tool Do?
+
+This program can send two types of emails:
+
+1. **Notification Email** (`blast`) - Sent BEFORE voting day to inform students
+2. **Ballot Link Email** (`ballot_links`) - Sent ON voting day with the actual voting link (one Google Form for everyone)
+
+---
+
+## 📋 What You'll Need
+
+Before you start, make sure you have:
+
+- ✅ A computer with Windows
+- ✅ Python installed (version 3.7 or higher)
+- ✅ A Gmail account for sending emails
+- ✅ A list of student emails in a CSV file (Excel can create this)
+
+---
+
+## 🚀 Quick Start Guide
+
+### Step 1: Install Python
+
+1. Check if Python is already installed:
+   - Open **Command Prompt** (search for "cmd" in Windows)
+   - Type: `python --version` and press Enter
+   - If you see a version number (like `Python 3.12.0`), you're good! Skip to Step 2.
+
+2. If not installed, download Python:
+   - Visit: https://www.python.org/downloads/
+   - Click the big yellow button "Download Python"
+   - Run the installer
+---
+
+### Step 2: Install Required Package
+
+1. Open **Command Prompt** (type "cmd" in Windows search)
+2. Type this command and press Enter:
+   ```
+   pip install python-dotenv
+   ```
+3. Wait for it to finish (you'll see "Successfully installed...")
+
+![Project Screenshot](https://drive.google.com/uc?export=view&id=1IMMuX3DMiwh_VMt_Qw6QQGfJe35vLZgA)
+
+---
+
+### Step 3: Set Up Gmail App Password
+
+**Why?** Gmail requires a special password for programs to send emails (not your regular password).
+
+1. Go to your Gmail account settings
+2. Enable **2-Step Verification** first (if not already enabled)
+   - Visit: https://myaccount.google.com/security
+   - Click "2-Step Verification" and follow the steps
+
+![Project Screenshot](https://drive.google.com/uc?export=view&id=19dQO6Ohk_-jxBe2626wvnxcGoRY7Ci6C)
+
+3. Create an **App Password**:
+   - Visit: https://myaccount.google.com/apppasswords
+   - Or search for "App passwords" in your Google Account settings
+   - Assign name for app password, can be anything
+   - Click "Create"
+   - **Copy the 16-character password** (it looks like: `abcd efgh ijkl mnop`)
+
+![Project Screenshot](https://drive.google.com/uc?export=view&id=1h43EE2NqnMXJsH49i-FHbFg2G7HRa9UQ)
+
+⚠️ **IMPORTANT**: Save this password! You'll need it in the next step.
+
+---
+
+### Step 4: Create Your Configuration File
+
+1. Open **Notepad** (search for "Notepad" in Windows)
+2. Copy and paste this text (replace the example values with your real information):
+
+```
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SENDER_EMAIL=your_email@gmail.com
+SENDER_PASSWORD=abcdefghijklmnop
+ALTERNATIVE_EMAIL_FORM_LINK=https://forms.gle/YourGoogleFormLink
+BALLOT_LINK=https://forms.gle/YourBallotFormLink
+PRECINCT_LOCATION=Room 123, Main Building, VSU Campus
+```
+
+3. **Replace these values:**
+   - `your_email@gmail.com` → Your Gmail address
+   - `abcdefghijklmnop` → The 16-character App Password from Step 3 (remove spaces)
+   - `https://forms.gle/YourGoogleFormLink` → Your Google Form link for alternative email requests
+   - `https://forms.gle/YourBallotFormLink` → Your Google Form ballot link (same for all students)
+   - `Room 123, Main Building, VSU Campus` → The actual voting precinct location
+
+4. Save the file:
+   - Click **File** → **Save As**
+   - Navigate to your SEB folder (where `send.py` is located)
+   - For "File name", type: `.env` (yes, with the dot at the start!)
+   - For "Save as type", select: **All Files**
+   - Click **Save**
+
+![Project Screenshot](https://drive.google.com/uc?export=view&id=1rkLL1sCP9td0TOxuizsa7jwGPBUnBqFg)
+
+---
+
+### Step 5: Prepare Your Student List (CSV File)
+
+#### For Notification Emails (Before Voting Day)
+
+Create a file called `students.csv` with these columns:
+
+```
+email,name,student_id
+juan.delacruz@vsu.edu.ph,Juan Dela Cruz,2021-12345
+maria.santos@vsu.edu.ph,Maria Santos,2021-67890
+```
+
+![Project Screenshot](https://drive.google.com/uc?export=view&id=1P6wsM6jTXvygUVjigHg6ji1MDXRb137C)
+
+
+**How to create this in Excel:**
+1. Open Excel
+2. Create three columns: `email`, `name`, `student_id`
+3. Fill in your student data
+4. Click **File** → **Save As**
+5. Choose **CSV (Comma delimited) (*.csv)** as the file type
+6. Save it in your SEB folder as `students.csv`
+
+---
+
+#### For Ballot Link Emails (On Voting Day)
+
+Use the **SAME** CSV file as notifications! The ballot link comes from your `.env` file, not the CSV.
+
+```
+email,name,student_id
+juan.delacruz@vsu.edu.ph,Juan Dela Cruz,2021-12345
+maria.santos@vsu.edu.ph,Maria Santos,2021-67890
+```
+
+**Note**: All students will receive the same Google Form ballot link that you configured in `BALLOT_LINK` in your `.env` file.
+
+---
+
+## 📬 How to Send Emails
+
+### Sending Notification Emails (Before Voting Day)
+
+1. Open **Command Prompt**
+2. Navigate to any SEB folder:
+   ```
+   cd C:\Users\YourName\...\SEB
+   ```
+   (Replace with your actual folder location)
+
+3. Type this command:
+   ```
+   python send.py --mode batch --type blast --csv students.csv
+   ```
+
+4. You'll see a preview of all emails. Type `yes` to confirm.
+
+5. Wait 30 seconds (you can press `Ctrl+C` to cancel if needed)
+
+6. Emails will be sent! ✅
+
+![Project Screenshot](https://drive.google.com/uc?export=view&id=1A0e8h2NeWWfMa7VyEdO22S915rCg5SlO)
+---
+
+### Sending Ballot Links (On Voting Day)
+
+1. Open **Command Prompt**
+2. Navigate to your SEB folder:
+   ```
+   cd C:\Users\YourName\...\SEB
+   ```
+   (Replace with your actual folder location)
+
+3. Type this command:
+   ```
+   python send.py --mode batch --type ballot_links --csv students.csv
+   ```
+
+4. Confirm and wait for emails to be sent! ✅
+
+**Note**: Make sure `BALLOT_LINK` is set correctly in your `.env` file before sending!
+
+---
+
+## 🔧 Advanced Options
+
+### Send to Just One Student (Test)
+
+```
+python send.py --mode single --type blast --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+```
+
+### Send Ballot Link to One Student
+
+```
+python send.py --mode single --type ballot_links --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+```
+
+### Send Immediately (No 30-Second Wait)
+
+```
+python send.py --mode batch --type blast --csv students.csv --delay 0
+```
+
+### Wait Longer Before Sending (60 seconds)
+
+```
+python send.py --mode batch --type blast --csv students.csv --delay 60
+```
+
+### Adjust Delay Between Emails (Anti-Spam)
+
+```
+python send.py --mode batch --type blast --csv students.csv --email-delay 5
+```
+
+**Note**: Default is 3 seconds between emails. Increase to 5-10 seconds if emails are going to spam.
+
+---
+
+## 🛡️ Preventing Spam Folder Issues
+
+If your emails are being marked as spam, try these solutions:
+
+### **1. Send a Test Email to Yourself First**
+- Always send to your own email before sending to students
+- If it goes to spam, mark it as "Not Spam"
+- This helps train Gmail's filters
+
+### **2. Increase Delay Between Emails**
+```bash
+# Use 5 seconds between emails instead of 3
+python send.py --mode batch --type blast --csv students.csv --email-delay 5
+
+# For very cautious sending, use 10 seconds
+python send.py --mode batch --type blast --csv students.csv --email-delay 10
+```
+
+### **3. Send in Smaller Batches**
+- Don't send more than 50 emails at once
+- Split your CSV into smaller files
+- Wait 30-60 minutes between batches
+
+### **5. Ask Recipients to Whitelist**
+Tell students to:
+1. Check their spam folder
+2. Mark the email as "Not Spam"
+3. Add `fcbaybayseb@vsu.edu.ph` to their contacts
+
+### **6. Check Your Email Content**
+- Avoid ALL CAPS in subject lines
+- Don't use too many exclamation marks!!!
+- Keep a good text-to-image ratio
+- Include a physical address (already in footer)
+
+### **7. Verify Your Sender Reputation**
+- Use only one Gmail account for sending
+- Don't switch between different accounts
+- Keep your account in good standing (no violations)
+
+---
+
+## ❓ Common Problems & Solutions
+
+### Problem: "python: command not found"
+**Solution**: Python is not installed or not added to PATH. Go back to Step 1.
+
+---
+
+### Problem: "Authentication failed"
+**Solution**: 
+1. Check your App Password in the `.env` file
+2. Make sure there are no spaces in the password
+3. Make sure you're using an App Password, not your regular Gmail password
+
+
+---
+
+### Problem: "CSV file not found"
+**Solution**: 
+1. Make sure your CSV file is in the same folder as `send.py`
+2. Check the file name matches exactly (including `.csv` extension)
+3. Use the full path if needed: `--csv "C:\Users\YourName\Desktop\SEB\students.csv"`
+
+---
+
+### Problem: Email not sending
+**Solution**:
+1. Check your internet connection
+2. Make sure your Gmail account is active
+3. Check if you've hit Gmail's daily sending limit (500 emails for free accounts)
+4. Try sending to yourself first as a test
+
+---
+
+### Problem: Emails going to spam folder
+**Solution**:
+1. Increase delay between emails: `--email-delay 5` or `--email-delay 10`
+2. Send smaller batches (max 50 emails at a time)
+3. Send a test to yourself first and mark as "Not Spam"
+4. Ask recipients to check spam and whitelist the sender
+5. See the "Preventing Spam Folder Issues" section above for more tips
+
+---
+
+### Problem: "Missing required column in CSV"
+**Solution**: 
+1. Open your CSV file in Excel
+2. Make sure the first row has the exact column names (no extra spaces):
+   - For notifications: `email,name,student_id`
+   - For ballot links: `email,name,student_id`
+
+**[IMAGE PLACEHOLDER: Screenshot highlighting the correct CSV header row format]**
+
+---
+
+## 📊 Email Sending Limits
+
+- **Gmail Free Account**: 500 emails per day
+- **Gmail Workspace**: 2,000 emails per day
+
+The program automatically waits 1 second between each email to avoid problems.
+
+---
+
+## 🎨 What the Emails Look Like
+
+### Notification Email (Blue Header)
+- Informs students their email is whitelisted
+- Tells them when voting day is (December 9, 2025, 8:00 AM - 8:00 PM)
+- Explains they'll receive the ballot link on voting day
+- Shows alternative voting options:
+  - Button to apply for different email (deadline: Dec 8, 5PM)
+  - In-person precinct information (8:00 AM - 5:00 PM)
+
+**[IMAGE PLACEHOLDER: Screenshot of the notification email as it appears in Gmail]**
+
+---
+
+### Ballot Link Email (Blue Header with Red Button)
+- Contains the actual voting link
+- Big red "VOTE" button
+- Reminds students voting closes at 8:00 PM
+- Shows in-person voting option if they can't access online
+
+**[IMAGE PLACEHOLDER: Screenshot of the ballot link email as it appears in Gmail]**
+
+---
+
+## 📞 Need Help?
+
+If you're stuck:
+
+1. **Read the error message carefully** - it usually tells you what's wrong
+2. **Check the Common Problems section** above
+3. **Contact the technical team** at: fcbaybayseb@vsu.edu.ph
+
+---
+
+## ✅ Quick Checklist Before Sending
+
+- [ ] Python is installed (`python --version` shows a version number)
+- [ ] `python-dotenv` package is installed (`pip show python-dotenv` shows package info)
+- [ ] `.env` file is created with correct Gmail credentials
+- [ ] Gmail App Password is set up and working
+- [ ] CSV file is prepared with correct format and column names
+- [ ] Alternative email form link is added to `.env` file
+- [ ] Precinct location is correct in `.env` file
+- [ ] **Test email sent successfully to yourself first!**
+
+---
+
+## 🔒 Security Notes
+
+- **NEVER share your `.env` file** - it contains your Gmail password!
+- **NEVER commit `.env` to GitHub** - the file is already excluded via `.gitignore`
+- The App Password only works for this program, not for logging into your Gmail account
+- You can delete App Passwords anytime from your Google Account settings
+
+---
+
+## 📁 File Structure
+
+Your SEB folder should look like this:
+
+```
+SEB/
+├── send.py                     (The main program - don't edit!)
+├── email_blast.html            (Notification email template)
+├── email_ballot_links.html     (Ballot link email template)
+├── .env                        (Your secret credentials - NEVER share!)
+├── .env.example                (Example template - safe to share)
+├── students.csv                (Your student list - same for both email types)
+├── students_template.csv       (Template to help you create your CSV)
+├── emailblast.csv              (Your actual voter list - 47 students)
+└── README.md                   (This guide you're reading)
+```
+
+---
+
+## 🎓 Made for Faculty of Computing - Student Election Board
+
+This tool was created to make election email management easier and more professional. 
+
+**For official concerns**: fcbaybayseb@vsu.edu.ph
+
+---
+
+## 📝 Quick Command Reference
+
+```bash
+# Send notification emails to all students (with default 3-second delay between emails)
+python send.py --mode batch --type blast --csv students.csv
+
+# Send ballot links on voting day (uses same CSV, ballot link from .env)
+python send.py --mode batch --type ballot_links --csv students.csv
+
+# Test with one email first
+python send.py --mode single --type blast --email test@vsu.edu.ph --name "Test User" --id 2021-00000
+
+# Send immediately without countdown (still has 3-second delay between emails)
+python send.py --mode batch --type blast --csv students.csv --delay 0
+
+# Increase delay between emails to prevent spam (5 seconds)
+python send.py --mode batch --type blast --csv students.csv --email-delay 5
+
+# Send with longer delays for maximum anti-spam protection (10 seconds between emails)
+python send.py --mode batch --type blast --csv students.csv --email-delay 10
+```
+
+---
+
+**Good luck with your election! 🗳️**

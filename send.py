@@ -16,12 +16,17 @@ SMTP_SERVER = os.getenv('SMTP_SERVER')
 SMTP_PORT = int(os.getenv('SMTP_PORT'))
 SENDER_EMAIL = os.getenv('SENDER_EMAIL')
 SENDER_PASSWORD = os.getenv('SENDER_PASSWORD')
-REAPPLICATION_LINK = os.getenv('REAPPLICATION_LINK')
+ALTERNATIVE_EMAIL_FORM_LINK = os.getenv('ALTERNATIVE_EMAIL_FORM_LINK', '')
+PRECINCT_LOCATION = os.getenv('PRECINCT_LOCATION', 'TBA')
+BALLOT_LINK = os.getenv('BALLOT_LINK', '')
 
-HTML_TEMPLATE_PATH = 'email_approval_template.html'
-REAPPLY_TEMPLATE_PATH = 'email_reapply_template.html'
-SUBJECT_TEMPLATE = 'Online Voting Application Approved - FC Plebiscite'
-SUBJECT_REAPPLY = 'Online Voting Application - Action Required - FC Plebiscite'
+BLAST_TEMPLATE_PATH = 'email_blast.html'
+BALLOT_LINKS_TEMPLATE_PATH = 'email_ballot_links.html'
+SUBJECT_BLAST = 'USSC Special Election & Plebiscite - December 9, 2025'
+SUBJECT_BALLOT_LINKS = 'VOTE NOW - USSC Special Election & Plebiscite'
+
+DEFAULT_DELAY_BETWEEN_EMAILS = 3  
+MAX_EMAILS_PER_BATCH = 50 
 
 cancel_scheduled_send = False
 
@@ -38,20 +43,16 @@ def read_file_content(filepath):
         print(f"Error reading file {filepath}: {e}")
         return None
 
-
-def send_approval_email(recipient_email, student_name, student_id, election_date, start_time, end_time, max_retries=3):
+def send_blast_email(recipient_email, student_name, student_id, max_retries=3):
     """
-    Sends a customized HTML approval email.
+    Sends a customized HTML blast notification email.
 
-    :param recipient_email: The student's approved email address.
+    :param recipient_email: The student's whitelisted email address.
     :param student_name: The name of the student.
     :param student_id: The student's ID number.
-    :param election_date: The date of the election.
-    :param start_time: Voting start time.
-    :param end_time: Voting end time.
     """
 
-    html_template = read_file_content(HTML_TEMPLATE_PATH)
+    html_template = read_file_content(BLAST_TEMPLATE_PATH)
     if not html_template:
         return False
     
@@ -61,24 +62,28 @@ def send_approval_email(recipient_email, student_name, student_id, election_date
         '[STUDENT NAME]': student_name,
         '[STUDENT ID NO.]': student_id,
         '[WHITELISTED EMAIL]': recipient_email,
-        '[ELECTION DATE]': election_date,
-        '[START TIME]': start_time,
-        '[END TIME]': end_time
+        '[ALTERNATIVE EMAIL FORM LINK]': ALTERNATIVE_EMAIL_FORM_LINK,
+        '[PRECINCT LOCATION]': PRECINCT_LOCATION
     }
 
     for placeholder, value in replacements.items():
         html_content = html_content.replace(placeholder, value)
 
     msg = MIMEMultipart('related')
-    msg['Subject'] = SUBJECT_TEMPLATE
+    msg['Subject'] = SUBJECT_BLAST
     msg['From'] = SENDER_EMAIL
     msg['To'] = recipient_email
+    msg['Reply-To'] = 'fcbaybayseb@vsu.edu.ph'
+    msg['X-Priority'] = '3'
+    msg['X-Mailer'] = 'VSU Election System'
+    msg['Organization'] = 'Visayas State University - Faculty of Computing'
+    msg['List-Unsubscribe'] = '<mailto:fcbaybayseb@vsu.edu.ph?subject=Unsubscribe>'
 
     msg.attach(MIMEText(html_content, 'html'))
 
     for attempt in range(max_retries):
         try:
-            print(f"Attempting to send email to {recipient_email} (Attempt {attempt + 1}/{max_retries})...")
+            print(f"Attempting to send ballot email to {recipient_email} (Attempt {attempt + 1}/{max_retries})...")
             
             server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
             server.starttls()
@@ -86,11 +91,11 @@ def send_approval_email(recipient_email, student_name, student_id, election_date
             server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
             server.quit()
 
-            print(f"Success: Approval email sent to {recipient_email}")
+            print(f"Success: Ballot email sent to {recipient_email}")
             return True
 
         except smtplib.SMTPAuthenticationError:
-            print("❌ Error: Authentication failed. Please check your SENDER_EMAIL and SENDER_PASSWORD (ensure you are using an App Password for Gmail).")
+            print("❌ Error: Authentication failed. Please check your SENDER_EMAIL and SENDER_PASSWORD.")
             break 
 
         except Exception as e:
@@ -105,21 +110,16 @@ def send_approval_email(recipient_email, student_name, student_id, election_date
     return False
 
 
-def send_reapply_email(recipient_email, student_name, student_id, reapply_reason, election_date, start_time, end_time, reapplication_link, max_retries=3):
+def send_ballot_links_email(recipient_email, student_name, student_id, max_retries=3):
     """
-    Sends a customized HTML reapply email with reapplication option.
+    Sends a customized HTML email with ballot link.
 
-    :param recipient_email: The student's email address.
+    :param recipient_email: The student's whitelisted email address.
     :param student_name: The name of the student.
     :param student_id: The student's ID number.
-    :param reapply_reason: The reason for reapply.
-    :param election_date: The date of the election.
-    :param start_time: Voting start time.
-    :param end_time: Voting end time.
-    :param reapplication_link: Link to reapply.
     """
 
-    html_template = read_file_content(REAPPLY_TEMPLATE_PATH)
+    html_template = read_file_content(BALLOT_LINKS_TEMPLATE_PATH)
     if not html_template:
         return False
     
@@ -128,26 +128,29 @@ def send_reapply_email(recipient_email, student_name, student_id, reapply_reason
     replacements = {
         '[STUDENT NAME]': student_name,
         '[STUDENT ID NO.]': student_id,
-        '[REAPPLY REASON]': reapply_reason,
-        '[ELECTION DATE]': election_date,
-        '[START TIME]': start_time,
-        '[END TIME]': end_time,
-        '[REAPPLICATION LINK]': reapplication_link
+        '[WHITELISTED EMAIL]': recipient_email,
+        '[SPECIAL ELECTION LINK]': BALLOT_LINK,
+        '[PRECINCT LOCATION]': PRECINCT_LOCATION
     }
 
     for placeholder, value in replacements.items():
         html_content = html_content.replace(placeholder, value)
 
     msg = MIMEMultipart('related')
-    msg['Subject'] = SUBJECT_REAPPLY
+    msg['Subject'] = SUBJECT_BALLOT_LINKS
     msg['From'] = SENDER_EMAIL
     msg['To'] = recipient_email
+    msg['Reply-To'] = 'fcbaybayseb@vsu.edu.ph'
+    msg['X-Priority'] = '1'
+    msg['X-Mailer'] = 'VSU Election System'
+    msg['Organization'] = 'Visayas State University - Faculty of Computing'
+    msg['List-Unsubscribe'] = '<mailto:fcbaybayseb@vsu.edu.ph?subject=Unsubscribe>'
 
     msg.attach(MIMEText(html_content, 'html'))
 
     for attempt in range(max_retries):
         try:
-            print(f"Attempting to send reapply email to {recipient_email} (Attempt {attempt + 1}/{max_retries})...")
+            print(f"Attempting to send ballot links email to {recipient_email} (Attempt {attempt + 1}/{max_retries})...")
             
             server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
             server.starttls()
@@ -155,7 +158,7 @@ def send_reapply_email(recipient_email, student_name, student_id, reapply_reason
             server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
             server.quit()
 
-            print(f"Success: reapply email sent to {recipient_email}")
+            print(f"Success: Ballot links email sent to {recipient_email}")
             return True
 
         except smtplib.SMTPAuthenticationError:
@@ -202,15 +205,14 @@ def countdown_timer(delay_seconds):
         return True
 
 
-def process_csv_batch(csv_file, email_type, election_date, start_time, end_time, reapplication_link=None, delay=0):
+def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_BETWEEN_EMAILS):
     """
     Process batch emails from CSV file.
     
-    CSV format for approval:
+    CSV format for all email types:
     email,name,student_id
     
-    CSV format for reapply:
-    email,name,student_id,reapply_reason
+    :param email_delay: Delay in seconds between each email (default: 3 seconds)
     """
     global cancel_scheduled_send
     
@@ -225,6 +227,13 @@ def process_csv_batch(csv_file, email_type, election_date, start_time, end_time,
     print(f"\nBatch Email Preview:")
     print(f"Type: {email_type.upper()}")
     print(f"Total recipients: {len(rows)}")
+    print(f"Delay between emails: {email_delay} seconds")
+    
+    if len(rows) > MAX_EMAILS_PER_BATCH:
+        print(f"\n⚠️ WARNING: You are sending to {len(rows)} recipients.")
+        print(f"Recommended batch size is {MAX_EMAILS_PER_BATCH} emails to avoid spam filters.")
+        print(f"Consider splitting your CSV into smaller batches.\n")
+    
     for i, row in enumerate(rows, 1):
         print(f"  {i}. {row['name']} ({row['student_id']}) - {row['email']}")
     
@@ -241,35 +250,25 @@ def process_csv_batch(csv_file, email_type, election_date, start_time, end_time,
     success_count = 0
     fail_count = 0
     
-    for row in rows:
+    for idx, row in enumerate(rows, 1):
         if cancel_scheduled_send:
             print("\n❌ Batch send cancelled!")
             break
         
+        print(f"\n[{idx}/{len(rows)}] Processing: {row['name']} <{row['email']}>")
+        
         try:
-            if email_type == 'approval':
-                result = send_approval_email(
+            if email_type == 'blast':
+                result = send_blast_email(
                     recipient_email=row['email'],
                     student_name=row['name'],
-                    student_id=row['student_id'],
-                    election_date=election_date,
-                    start_time=start_time,
-                    end_time=end_time
+                    student_id=row['student_id']
                 )
-            elif email_type == 'reapply':
-                if not reapplication_link:
-                    print("❌ Error: Reapplication link is required for reapply emails.")
-                    break
-                
-                result = send_reapply_email(
+            elif email_type == 'ballot_links':
+                result = send_ballot_links_email(
                     recipient_email=row['email'],
                     student_name=row['name'],
-                    student_id=row['student_id'],
-                    reapply_reason=row.get('reapply_reason', 'Incomplete or invalid application'),
-                    election_date=election_date,
-                    start_time=start_time,
-                    end_time=end_time,
-                    reapplication_link=reapplication_link
+                    student_id=row['student_id']
                 )
             
             if result:
@@ -277,7 +276,9 @@ def process_csv_batch(csv_file, email_type, election_date, start_time, end_time,
             else:
                 fail_count += 1
             
-            time.sleep(1)
+            if idx < len(rows):
+                print(f"Waiting {email_delay} seconds before next email...")
+                time.sleep(email_delay)
             
         except KeyError as e:
             print(f"❌ Error: Missing required column in CSV: {e}")
@@ -316,12 +317,12 @@ def send_single_with_delay(email_func, delay, **kwargs):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='FOC-SEB Email Sender')
+    parser = argparse.ArgumentParser(description='USSC Email Sender - Special Election and Plebiscite')
     
     parser.add_argument('--mode', choices=['single', 'batch'], default='single',
                         help='Send mode: single email or batch from CSV')
     
-    parser.add_argument('--type', choices=['approval', 'reapply'], default='approval',
+    parser.add_argument('--type', choices=['blast', 'ballot_links'], default='blast',
                         help='Type of email to send')
     
     parser.add_argument('--email', help='Recipient email address')
@@ -330,58 +331,37 @@ if __name__ == '__main__':
     
     parser.add_argument('--csv', help='Path to CSV file for batch processing')
     
-    parser.add_argument('--date', default='Wednesday, November 26, 2025',
-                        help='Election date')
-    parser.add_argument('--start', default='8:00 AM',
-                        help='Voting start time')
-    parser.add_argument('--end', default='5:00 PM',
-                        help='Voting end time')
-    
-    parser.add_argument('--reason', help='Reapply reason (for single reapply emails)')
-    parser.add_argument('--reapply-link', default=REAPPLICATION_LINK,
-                        help='Reapplication link (for reapply emails)')
-    
     parser.add_argument('--delay', type=int, default=30,
                         help='Delay in seconds before sending (default: 30)')
     
+    parser.add_argument('--email-delay', type=int, default=DEFAULT_DELAY_BETWEEN_EMAILS,
+                        help=f'Delay in seconds between each email in batch mode (default: {DEFAULT_DELAY_BETWEEN_EMAILS})')
+    
     args = parser.parse_args()
     
-    print("--- FOC-SEB Email Sender Initialization ---\n")
+    print("--- USSC Email Sender - Special Election and Plebiscite ---\n")
     
     try:
         if args.mode == 'single':
             if not all([args.email, args.name, args.id]):
                 print("❌ Error: --email, --name, and --id are required for single mode")
                 parser.print_help()
-            elif args.type == 'approval':
+            elif args.type == 'blast':
                 send_single_with_delay(
-                    send_approval_email,
+                    send_blast_email,
                     delay=args.delay,
                     recipient_email=args.email,
                     student_name=args.name,
-                    student_id=args.id,
-                    election_date=args.date,
-                    start_time=args.start,
-                    end_time=args.end
+                    student_id=args.id
                 )
-            elif args.type == 'reapply':
-                if not args.reason:
-                    print("❌ Error: --reason is required for reapply emails")
-                    parser.print_help()
-                else:
-                    send_single_with_delay(
-                        send_reapply_email,
-                        delay=args.delay,
-                        recipient_email=args.email,
-                        student_name=args.name,
-                        student_id=args.id,
-                        reapply_reason=args.reason,
-                        election_date=args.date,
-                        start_time=args.start,
-                        end_time=args.end,
-                        reapplication_link=args.reapply_link
-                    )
-        
+            elif args.type == 'ballot_links':
+                send_single_with_delay(
+                    send_ballot_links_email,
+                    delay=args.delay,
+                    recipient_email=args.email,
+                    student_name=args.name,
+                    student_id=args.id
+                )
         elif args.mode == 'batch':
             if not args.csv:
                 print("❌ Error: --csv is required for batch mode")
@@ -390,11 +370,8 @@ if __name__ == '__main__':
                 process_csv_batch(
                     csv_file=args.csv,
                     email_type=args.type,
-                    election_date=args.date,
-                    start_time=args.start,
-                    end_time=args.end,
-                    reapplication_link=args.reapply_link,
-                    delay=args.delay
+                    delay=args.delay,
+                    email_delay=args.email_delay
                 )
     
     except KeyboardInterrupt:
