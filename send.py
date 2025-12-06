@@ -25,8 +25,7 @@ BALLOT_LINKS_TEMPLATE_PATH = 'email_ballot_links.html'
 SUBJECT_BLAST = 'USSC Special Election & Plebiscite - December 9, 2025'
 SUBJECT_BALLOT_LINKS = 'VOTE NOW - USSC Special Election & Plebiscite'
 
-DEFAULT_DELAY_BETWEEN_EMAILS = 3  
-MAX_EMAILS_PER_BATCH = 50 
+DEFAULT_DELAY_BETWEEN_EMAILS = 30
 
 cancel_scheduled_send = False
 
@@ -228,11 +227,6 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     print(f"Type: {email_type.upper()}")
     print(f"Total recipients: {len(rows)}")
     print(f"Delay between emails: {email_delay} seconds")
-    
-    if len(rows) > MAX_EMAILS_PER_BATCH:
-        print(f"\n⚠️ WARNING: You are sending to {len(rows)} recipients.")
-        print(f"Recommended batch size is {MAX_EMAILS_PER_BATCH} emails to avoid spam filters.")
-        print(f"Consider splitting your CSV into smaller batches.\n")
     
     for i, row in enumerate(rows, 1):
         print(f"  {i}. {row['name']} ({row['student_id']}) - {row['email']}")
