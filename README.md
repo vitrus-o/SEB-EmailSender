@@ -1,4 +1,4 @@
-# 📧 Email Sender for USSC Special Election & Plebiscite
+# Email Sender for USSC Special Election & Plebiscite
 
 > **Easy-to-use automated email sender for election notifications and ballot distribution**
 
@@ -6,7 +6,7 @@ This tool helps you send professional emails to students for the USSC Special El
 
 ---
 
-## 🎯 What Does This Tool Do?
+## What Does This Tool Do?
 
 This program can send two types of emails:
 
@@ -15,7 +15,7 @@ This program can send two types of emails:
 
 ---
 
-## 📋 What You'll Need
+## What You'll Need
 
 Before you start, make sure you have:
 
@@ -26,7 +26,7 @@ Before you start, make sure you have:
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 ### Step 1: Install Python
 
@@ -170,7 +170,7 @@ maria.santos@vsu.edu.ph,Maria Santos,2021-67890
 
 5. Wait 30 seconds (you can press `Ctrl+C` to cancel if needed)
 
-6. Emails will be sent! ✅
+6. Emails will be sent! 
 
 ![Project Screenshot](https://drive.google.com/uc?export=view&id=1A0e8h2NeWWfMa7VyEdO22S915rCg5SlO)
 ---
@@ -189,7 +189,7 @@ maria.santos@vsu.edu.ph,Maria Santos,2021-67890
    python send.py --mode batch --type ballot_links --csv students.csv
    ```
 
-4. Confirm and wait for emails to be sent! ✅
+4. Confirm and wait for emails to be sent! 
 
 **Note**: Make sure `BALLOT_LINK` is set correctly in your `.env` file before sending!
 
@@ -231,7 +231,7 @@ python send.py --mode batch --type blast --csv students.csv --email-delay 5
 
 ---
 
-## 🛡️ Preventing Spam Folder Issues
+## Preventing Spam Folder Issues
 
 If your emails are being marked as spam, try these solutions:
 
@@ -273,7 +273,7 @@ Tell students to:
 
 ---
 
-## ❓ Common Problems & Solutions
+##  Common Problems & Solutions
 
 ### Problem: "python: command not found"
 **Solution**: Python is not installed or not added to PATH. Go back to Step 1.
@@ -327,7 +327,7 @@ Tell students to:
 
 ---
 
-## 📊 Email Sending Limits
+##  Email Sending Limits
 
 - **Gmail Free Account**: 500 emails per day
 - **Gmail Workspace**: 2,000 emails per day
@@ -336,7 +336,7 @@ The program automatically waits 1 second between each email to avoid problems.
 
 ---
 
-## 🎨 What the Emails Look Like
+##  What the Emails Look Like
 
 ### Notification Email (Blue Header)
 - Informs students their email is whitelisted
@@ -360,7 +360,7 @@ The program automatically waits 1 second between each email to avoid problems.
 
 ---
 
-## 📞 Need Help?
+##  Need Help?
 
 If you're stuck:
 
@@ -392,7 +392,7 @@ If you're stuck:
 
 ---
 
-## 📁 File Structure
+##  File Structure
 
 Your SEB folder should look like this:
 
@@ -411,7 +411,7 @@ SEB/
 
 ---
 
-## 🎓 Made for Faculty of Computing - Student Election Board
+##  Made for Faculty of Computing - Student Election Board
 
 This tool was created to make election email management easier and more professional. 
 
