@@ -223,13 +223,50 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
         reader = csv.DictReader(f)
         rows = list(reader)
     
+    # Check if CSV is empty
+    if not rows:
+        print("❌ Error: CSV file is empty")
+        return
+    
+    # Detect column names (case-insensitive and flexible)
+    first_row = rows[0]
+    headers = {k.lower().strip(): k for k in first_row.keys()}
+    
+    # Map expected columns to actual CSV columns
+    email_col = None
+    name_col = None
+    id_col = None
+    
+    for key in headers:
+        if 'email' in key:
+            email_col = headers[key]
+        elif 'name' in key:
+            name_col = headers[key]
+        elif 'id' in key or 'student' in key:
+            id_col = headers[key]
+    
+    # Validate required columns exist
+    missing_cols = []
+    if not email_col:
+        missing_cols.append('email')
+    if not name_col:
+        missing_cols.append('name')
+    if not id_col:
+        missing_cols.append('student_id')
+    
+    if missing_cols:
+        print(f"❌ Error: CSV is missing required columns: {', '.join(missing_cols)}")
+        print(f"Available columns: {', '.join(first_row.keys())}")
+        print(f"\nExpected format: email,name,student_id")
+        return
+    
     print(f"\nBatch Email Preview:")
     print(f"Type: {email_type.upper()}")
     print(f"Total recipients: {len(rows)}")
     print(f"Delay between emails: {email_delay} seconds")
     
     for i, row in enumerate(rows, 1):
-        print(f"  {i}. {row['name']} ({row['student_id']}) - {row['email']}")
+        print(f"  {i}. {row[name_col]} ({row[id_col]}) - {row[email_col]}")
     
     confirm = input(f"\nDo you want to proceed with sending {len(rows)} emails? (yes/no): ").strip().lower()
     if confirm not in ['yes', 'y']:
@@ -249,20 +286,20 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
             print("\n❌ Batch send cancelled!")
             break
         
-        print(f"\n[{idx}/{len(rows)}] Processing: {row['name']} <{row['email']}>")
+        print(f"\n[{idx}/{len(rows)}] Processing: {row[name_col]} <{row[email_col]}>")
         
         try:
             if email_type == 'blast':
                 result = send_blast_email(
-                    recipient_email=row['email'],
-                    student_name=row['name'],
-                    student_id=row['student_id']
+                    recipient_email=row[email_col],
+                    student_name=row[name_col],
+                    student_id=row[id_col]
                 )
             elif email_type == 'ballot_links':
                 result = send_ballot_links_email(
-                    recipient_email=row['email'],
-                    student_name=row['name'],
-                    student_id=row['student_id']
+                    recipient_email=row[email_col],
+                    student_name=row[name_col],
+                    student_id=row[id_col]
                 )
             
             if result:
@@ -284,7 +321,6 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     print(f"\n--- Batch Processing Complete ---")
     print(f"✅ Successfully sent: {success_count}")
     print(f"❌ Failed: {fail_count}")
-
 
 def send_single_with_delay(email_func, delay, **kwargs):
     """
