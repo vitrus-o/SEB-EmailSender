@@ -22,7 +22,7 @@ BALLOT_LINK = os.getenv('BALLOT_LINK', '')
 
 BLAST_TEMPLATE_PATH = 'email_blast.html'
 BALLOT_LINKS_TEMPLATE_PATH = 'email_ballot_links.html'
-SUBJECT_BLAST = 'USSC Special Election & Plebiscite - December 9, 2025'
+SUBJECT_BLAST = 'USSC Special Election & Plebiscite Notice'
 SUBJECT_BALLOT_LINKS = 'VOTE NOW - USSC Special Election & Plebiscite'
 
 DEFAULT_DELAY_BETWEEN_EMAILS = 30
