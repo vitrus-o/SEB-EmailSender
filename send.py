@@ -6,11 +6,19 @@ import os
 import time
 import argparse
 import csv
+import shutil
+import tempfile
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import threading
+import sys
 
 load_dotenv()
+
+
+def resource_path(relative_path):
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 SMTP_SERVER = os.getenv('SMTP_SERVER')
 SMTP_PORT = int(os.getenv('SMTP_PORT'))
@@ -19,15 +27,47 @@ SENDER_PASSWORD = os.getenv('SENDER_PASSWORD')
 ALTERNATIVE_EMAIL_FORM_LINK = os.getenv('ALTERNATIVE_EMAIL_FORM_LINK', '')
 PRECINCT_LOCATION = os.getenv('PRECINCT_LOCATION', 'TBA')
 BALLOT_LINK = os.getenv('BALLOT_LINK', '')
+ORG_NAME = os.getenv('ORG_NAME', 'Student Election Board')
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', SENDER_EMAIL or '')
 
-BLAST_TEMPLATE_PATH = 'email_blast.html'
-BALLOT_LINKS_TEMPLATE_PATH = 'email_ballot_links.html'
-SUBJECT_BLAST = 'USSC Special Election & Plebiscite Notice'
-SUBJECT_BALLOT_LINKS = 'VOTE NOW - USSC Special Election & Plebiscite'
+BLAST_TEMPLATE_PATH = resource_path('email_blast.html')
+BALLOT_LINKS_TEMPLATE_PATH = resource_path('email_ballot_links.html')
+PRECINCT_TEMPLATE_PATH = resource_path('email_precinct.html')
+REMINDER_TEMPLATE_PATH = resource_path('email_reminder.html')
+SUBJECT_BLAST = 'Election Notice'
+SUBJECT_BALLOT_LINKS = 'VOTE NOW - Election Ballot Link'
+SUBJECT_PRECINCT = 'Physical Voting Precinct Details'
+SUBJECT_REMINDER = 'Election Reminder - 2 Days Left'
 
 DEFAULT_DELAY_BETWEEN_EMAILS = 30
 
 cancel_scheduled_send = False
+
+STATUS_TRUE_VALUES = {"yes", "y", "true", "1", "sent", "done"}
+
+
+def status_is_sent(value):
+    if value is None:
+        return False
+    return str(value).strip().lower() in STATUS_TRUE_VALUES
+
+
+def ensure_status_column(fieldnames, email_type):
+    status_col = f"{email_type}_emailed"
+    if status_col not in fieldnames:
+        fieldnames.append(status_col)
+    return status_col
+
+
+def write_csv_rows(csv_file, fieldnames, rows):
+    directory = os.path.dirname(csv_file) or "."
+    fd, temp_path = tempfile.mkstemp(prefix="emails_", suffix=".csv", dir=directory)
+    with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+    shutil.move(temp_path, csv_file)
 
 
 def read_file_content(filepath):
@@ -62,7 +102,9 @@ def send_blast_email(recipient_email, student_name, student_id, max_retries=3):
         '[STUDENT ID NO.]': student_id,
         '[WHITELISTED EMAIL]': recipient_email,
         '[ALTERNATIVE EMAIL FORM LINK]': ALTERNATIVE_EMAIL_FORM_LINK,
-        '[PRECINCT LOCATION]': PRECINCT_LOCATION
+        '[PRECINCT LOCATION]': PRECINCT_LOCATION,
+        '[ORG NAME]': ORG_NAME,
+        '[CONTACT EMAIL]': CONTACT_EMAIL
     }
 
     for placeholder, value in replacements.items():
@@ -72,11 +114,11 @@ def send_blast_email(recipient_email, student_name, student_id, max_retries=3):
     msg['Subject'] = SUBJECT_BLAST
     msg['From'] = SENDER_EMAIL
     msg['To'] = recipient_email
-    msg['Reply-To'] = 'fcbaybayseb@vsu.edu.ph'
+    msg['Reply-To'] = CONTACT_EMAIL
     msg['X-Priority'] = '3'
     msg['X-Mailer'] = 'VSU Election System'
-    msg['Organization'] = 'Visayas State University - Faculty of Computing'
-    msg['List-Unsubscribe'] = '<mailto:fcbaybayseb@vsu.edu.ph?subject=Unsubscribe>'
+    msg['Organization'] = ORG_NAME
+    msg['List-Unsubscribe'] = f'<mailto:{CONTACT_EMAIL}?subject=Unsubscribe>'
 
     msg.attach(MIMEText(html_content, 'html'))
 
@@ -129,7 +171,10 @@ def send_ballot_links_email(recipient_email, student_name, student_id, max_retri
         '[STUDENT ID NO.]': student_id,
         '[WHITELISTED EMAIL]': recipient_email,
         '[SPECIAL ELECTION LINK]': BALLOT_LINK,
-        '[PRECINCT LOCATION]': PRECINCT_LOCATION
+        '[ELECTION LINK]': BALLOT_LINK,
+        '[PRECINCT LOCATION]': PRECINCT_LOCATION,
+        '[ORG NAME]': ORG_NAME,
+        '[CONTACT EMAIL]': CONTACT_EMAIL
     }
 
     for placeholder, value in replacements.items():
@@ -139,11 +184,11 @@ def send_ballot_links_email(recipient_email, student_name, student_id, max_retri
     msg['Subject'] = SUBJECT_BALLOT_LINKS
     msg['From'] = SENDER_EMAIL
     msg['To'] = recipient_email
-    msg['Reply-To'] = 'fcbaybayseb@vsu.edu.ph'
+    msg['Reply-To'] = CONTACT_EMAIL
     msg['X-Priority'] = '1'
     msg['X-Mailer'] = 'VSU Election System'
-    msg['Organization'] = 'Visayas State University - Faculty of Computing'
-    msg['List-Unsubscribe'] = '<mailto:fcbaybayseb@vsu.edu.ph?subject=Unsubscribe>'
+    msg['Organization'] = ORG_NAME
+    msg['List-Unsubscribe'] = f'<mailto:{CONTACT_EMAIL}?subject=Unsubscribe>'
 
     msg.attach(MIMEText(html_content, 'html'))
 
@@ -173,6 +218,135 @@ def send_ballot_links_email(recipient_email, student_name, student_id, max_retri
                 print(f"Failed to send email to {recipient_email} after {max_retries} attempts.")
                 break
     
+    return False
+
+
+def send_precinct_email(recipient_email, student_name, student_id, max_retries=3):
+    """
+    Sends a customized HTML email with physical precinct details.
+    """
+
+    html_template = read_file_content(PRECINCT_TEMPLATE_PATH)
+    if not html_template:
+        return False
+
+    html_content = html_template
+
+    replacements = {
+        '[STUDENT NAME]': student_name,
+        '[STUDENT ID NO.]': student_id,
+        '[WHITELISTED EMAIL]': recipient_email,
+        '[PRECINCT LOCATION]': PRECINCT_LOCATION,
+        '[ORG NAME]': ORG_NAME,
+        '[CONTACT EMAIL]': CONTACT_EMAIL
+    }
+
+    for placeholder, value in replacements.items():
+        html_content = html_content.replace(placeholder, value)
+
+    msg = MIMEMultipart('related')
+    msg['Subject'] = SUBJECT_PRECINCT
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = recipient_email
+    msg['Reply-To'] = CONTACT_EMAIL
+    msg['X-Priority'] = '3'
+    msg['X-Mailer'] = 'VSU Election System'
+    msg['Organization'] = ORG_NAME
+    msg['List-Unsubscribe'] = f'<mailto:{CONTACT_EMAIL}?subject=Unsubscribe>'
+
+    msg.attach(MIMEText(html_content, 'html'))
+
+    for attempt in range(max_retries):
+        try:
+            print(f"Attempting to send precinct email to {recipient_email} (Attempt {attempt + 1}/{max_retries})...")
+
+            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+            server.starttls()
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+            server.quit()
+
+            print(f"Success: Precinct email sent to {recipient_email}")
+            return True
+
+        except smtplib.SMTPAuthenticationError:
+            print("❌ Error: Authentication failed. Please check your SENDER_EMAIL and SENDER_PASSWORD.")
+            break
+
+        except Exception as e:
+            print(f"❌ Error sending email: {e}")
+            if attempt < max_retries - 1:
+                print(f"Retrying in {2 ** attempt} seconds...")
+                time.sleep(2 ** attempt)
+            else:
+                print(f"Failed to send email to {recipient_email} after {max_retries} attempts.")
+                break
+
+    return False
+
+
+def send_reminder_email(recipient_email, student_name, student_id, max_retries=3):
+    """
+    Sends a reminder email for the upcoming election.
+    """
+
+    html_template = read_file_content(REMINDER_TEMPLATE_PATH)
+    if not html_template:
+        return False
+
+    html_content = html_template
+
+    replacements = {
+        '[STUDENT NAME]': student_name,
+        '[STUDENT ID NO.]': student_id,
+        '[WHITELISTED EMAIL]': recipient_email,
+        '[ALTERNATIVE EMAIL FORM LINK]': ALTERNATIVE_EMAIL_FORM_LINK,
+        '[PRECINCT LOCATION]': PRECINCT_LOCATION,
+        '[ORG NAME]': ORG_NAME,
+        '[CONTACT EMAIL]': CONTACT_EMAIL
+    }
+
+    for placeholder, value in replacements.items():
+        html_content = html_content.replace(placeholder, value)
+
+    msg = MIMEMultipart('related')
+    msg['Subject'] = SUBJECT_REMINDER
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = recipient_email
+    msg['Reply-To'] = CONTACT_EMAIL
+    msg['X-Priority'] = '3'
+    msg['X-Mailer'] = 'VSU Election System'
+    msg['Organization'] = ORG_NAME
+    msg['List-Unsubscribe'] = f'<mailto:{CONTACT_EMAIL}?subject=Unsubscribe>'
+
+    msg.attach(MIMEText(html_content, 'html'))
+
+    for attempt in range(max_retries):
+        try:
+            print(f"Attempting to send reminder email to {recipient_email} (Attempt {attempt + 1}/{max_retries})...")
+
+            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+            server.starttls()
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+            server.quit()
+
+            print(f"Success: Reminder email sent to {recipient_email}")
+            return True
+
+        except smtplib.SMTPAuthenticationError:
+            print("❌ Error: Authentication failed. Please check your SENDER_EMAIL and SENDER_PASSWORD.")
+            break
+
+        except Exception as e:
+            print(f"❌ Error sending email: {e}")
+            if attempt < max_retries - 1:
+                print(f"Retrying in {2 ** attempt} seconds...")
+                time.sleep(2 ** attempt)
+            else:
+                print(f"Failed to send email to {recipient_email} after {max_retries} attempts.")
+                break
+
     return False
 
 
@@ -222,6 +396,7 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         rows = list(reader)
+        fieldnames = list(reader.fieldnames or [])
     
     # Check if CSV is empty
     if not rows:
@@ -238,11 +413,21 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     id_col = None
     
     for key in headers:
-        if 'email' in key:
+        if key == 'email':
             email_col = headers[key]
-        elif 'name' in key:
+        elif key in {'name', 'student_name'}:
             name_col = headers[key]
-        elif 'id' in key or 'student' in key:
+        elif key in {'id', 'student_id'}:
+            id_col = headers[key]
+
+    for key in headers:
+        if key.endswith('_emailed'):
+            continue
+        if not email_col and 'email' in key:
+            email_col = headers[key]
+        elif not name_col and 'name' in key:
+            name_col = headers[key]
+        elif not id_col and ('id' in key or 'student' in key):
             id_col = headers[key]
     
     # Validate required columns exist
@@ -260,17 +445,32 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
         print(f"\nExpected format: email,name,student_id")
         return
     
+    if not fieldnames:
+        fieldnames = list(rows[0].keys())
+
+    status_col = ensure_status_column(fieldnames, email_type)
+    pending_rows = [row for row in rows if not status_is_sent(row.get(status_col))]
+    already_sent = len(rows) - len(pending_rows)
+
     print(f"\nBatch Email Preview:")
     print(f"Type: {email_type.upper()}")
     print(f"Total recipients: {len(rows)}")
+    print(f"Already emailed: {already_sent}")
+    print(f"Pending: {len(pending_rows)}")
     print(f"Delay between emails: {email_delay} seconds")
-    
-    for i, row in enumerate(rows, 1):
+
+    for i, row in enumerate(pending_rows, 1):
         print(f"  {i}. {row[name_col]} ({row[id_col]}) - {row[email_col]}")
     
-    confirm = input(f"\nDo you want to proceed with sending {len(rows)} emails? (yes/no): ").strip().lower()
+    confirm = input(f"\nDo you want to proceed with sending {len(pending_rows)} emails? (yes/no): ").strip().lower()
     if confirm not in ['yes', 'y']:
         print("❌ Batch send cancelled.")
+        return
+
+    if pending_rows:
+        write_csv_rows(csv_file, fieldnames, rows)
+    else:
+        print("✅ No pending recipients. Nothing to send.")
         return
     
     if delay > 0:
@@ -281,7 +481,7 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     success_count = 0
     fail_count = 0
     
-    for idx, row in enumerate(rows, 1):
+    for idx, row in enumerate(pending_rows, 1):
         if cancel_scheduled_send:
             print("\n❌ Batch send cancelled!")
             break
@@ -301,13 +501,29 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
                     student_name=row[name_col],
                     student_id=row[id_col]
                 )
+            elif email_type == 'precinct':
+                result = send_precinct_email(
+                    recipient_email=row[email_col],
+                    student_name=row[name_col],
+                    student_id=row[id_col]
+                )
+            elif email_type == 'reminder':
+                result = send_reminder_email(
+                    recipient_email=row[email_col],
+                    student_name=row[name_col],
+                    student_id=row[id_col]
+                )
             
             if result:
                 success_count += 1
+                row[status_col] = "yes"
             else:
                 fail_count += 1
+                row[status_col] = "failed"
+
+            write_csv_rows(csv_file, fieldnames, rows)
             
-            if idx < len(rows):
+            if idx < len(pending_rows):
                 print(f"Waiting {email_delay} seconds before next email...")
                 time.sleep(email_delay)
             
@@ -352,7 +568,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', choices=['single', 'batch'], default='single',
                         help='Send mode: single email or batch from CSV')
     
-    parser.add_argument('--type', choices=['blast', 'ballot_links'], default='blast',
+    parser.add_argument('--type', choices=['blast', 'ballot_links', 'precinct', 'reminder'], default='blast',
                         help='Type of email to send')
     
     parser.add_argument('--email', help='Recipient email address')
@@ -387,6 +603,22 @@ if __name__ == '__main__':
             elif args.type == 'ballot_links':
                 send_single_with_delay(
                     send_ballot_links_email,
+                    delay=args.delay,
+                    recipient_email=args.email,
+                    student_name=args.name,
+                    student_id=args.id
+                )
+            elif args.type == 'precinct':
+                send_single_with_delay(
+                    send_precinct_email,
+                    delay=args.delay,
+                    recipient_email=args.email,
+                    student_name=args.name,
+                    student_id=args.id
+                )
+            elif args.type == 'reminder':
+                send_single_with_delay(
+                    send_reminder_email,
                     delay=args.delay,
                     recipient_email=args.email,
                     student_name=args.name,

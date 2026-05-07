@@ -1,17 +1,19 @@
-# Email Sender for USSC Special Election & Plebiscite
+# Email Sender for Elections
 
 > **Easy-to-use automated email sender for election notifications and ballot distribution**
 
-This tool helps you send professional emails to students for the USSC Special Election and Plebiscite. No coding experience needed!
+This tool helps you send professional emails to students for election notifications and voting updates. No coding experience needed!
 
 ---
 
 ## What Does This Tool Do?
 
-This program can send two types of emails:
+This program can send four types of emails:
 
 1. **Notification Email** (`blast`) - Sent BEFORE voting day to inform students
 2. **Ballot Link Email** (`ballot_links`) - Sent ON voting day with the actual voting link (one Google Form for everyone)
+3. **Precinct Email** (`precinct`) - Shares the physical voting precinct details
+4. **Reminder Email** (`reminder`) - Sent 2 days before election day with the alternative email deadline
 
 ---
 
@@ -54,6 +56,32 @@ Before you start, make sure you have:
 
 ---
 
+### Optional: Use the Visual Setup (No Command Line Needed)
+
+If you want a point-and-click screen for non-technical users, run the GUI:
+
+1. Open **Command Prompt**
+2. Go to your SEB folder
+3. Run:
+   ```
+   python gui.py
+   ```
+
+In the GUI, fill in the .env fields, click **Save .env**, then choose **Batch** or **Single** and click **Send**.
+
+---
+
+### Optional: Use the Windows EXE (No Python Needed)
+
+If you have the single-file exe, run:
+```
+dist\sebEmailSender.exe
+```
+
+Place your `.env` and CSV file in the same folder as the exe.
+
+---
+
 ### Step 3: Set Up Gmail App Password
 
 **Why?** Gmail requires a special password for programs to send emails (not your regular password).
@@ -91,6 +119,8 @@ SENDER_PASSWORD=abcdefghijklmnop
 ALTERNATIVE_EMAIL_FORM_LINK=https://forms.gle/YourGoogleFormLink
 BALLOT_LINK=https://forms.gle/YourBallotFormLink
 PRECINCT_LOCATION=Room 123, Main Building, VSU Campus
+ORG_NAME=Student Election Board
+CONTACT_EMAIL=your_contact_email@vsu.edu.ph
 ```
 
 3. **Replace these values:**
@@ -99,6 +129,8 @@ PRECINCT_LOCATION=Room 123, Main Building, VSU Campus
    - `https://forms.gle/YourGoogleFormLink` → Your Google Form link for alternative email requests
    - `https://forms.gle/YourBallotFormLink` → Your Google Form ballot link (same for all students)
    - `Room 123, Main Building, VSU Campus` → The actual voting precinct location
+   - `ORG_NAME` → The organization name shown in the email footer
+   - `CONTACT_EMAIL` → The contact email shown in the email footer
 
 4. Save the file:
    - Click **File** → **Save As**
@@ -195,6 +227,22 @@ maria.santos@vsu.edu.ph,Maria Santos,2021-67890
 
 ---
 
+### Sending Precinct Details
+
+```
+python send.py --mode batch --type precinct --csv students.csv
+```
+
+---
+
+### Sending Reminder (2 Days Before)
+
+```
+python send.py --mode batch --type reminder --csv students.csv
+```
+
+---
+
 ## 🔧 Advanced Options
 
 ### Send to Just One Student (Test)
@@ -207,6 +255,18 @@ python send.py --mode single --type blast --email student@vsu.edu.ph --name "Jua
 
 ```
 python send.py --mode single --type ballot_links --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+```
+
+### Send Precinct Details to One Student
+
+```
+python send.py --mode single --type precinct --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+```
+
+### Send Reminder to One Student
+
+```
+python send.py --mode single --type reminder --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
 ```
 
 ### Send Immediately (No 30-Second Wait)
@@ -224,10 +284,10 @@ python send.py --mode batch --type blast --csv students.csv --delay 60
 ### Adjust Delay Between Emails (Anti-Spam)
 
 ```
-python send.py --mode batch --type blast --csv students.csv --email-delay 5
+python send.py --mode batch --type blast --csv students.csv --email-delay 45
 ```
 
-**Note**: Default is 3 seconds between emails. Increase to 5-10 seconds if emails are going to spam.
+**Note**: Default is 30 seconds between emails. Increase to 45-60 seconds if emails are going to spam.
 
 ---
 
@@ -242,11 +302,11 @@ If your emails are being marked as spam, try these solutions:
 
 ### **2. Increase Delay Between Emails**
 ```bash
-# Use 5 seconds between emails instead of 3
+# Use 45 seconds between emails instead of 30
 python send.py --mode batch --type blast --csv students.csv --email-delay 5
 
-# For very cautious sending, use 10 seconds
-python send.py --mode batch --type blast --csv students.csv --email-delay 10
+# For very cautious sending, use 60 seconds
+python send.py --mode batch --type blast --csv students.csv --email-delay 60
 ```
 
 ### **3. Send in Smaller Batches**
@@ -258,7 +318,7 @@ python send.py --mode batch --type blast --csv students.csv --email-delay 10
 Tell students to:
 1. Check their spam folder
 2. Mark the email as "Not Spam"
-3. Add `fcbaybayseb@vsu.edu.ph` to their contacts
+3. Add your `CONTACT_EMAIL` to their contacts
 
 ### **6. Check Your Email Content**
 - Avoid ALL CAPS in subject lines
@@ -327,6 +387,14 @@ Tell students to:
 
 ---
 
+### Resume After Errors or App Closure
+
+When sending in batch, the program adds a status column to your CSV and skips
+rows that are already marked as sent. If the app stops, you can rerun the same
+batch and it continues where it left off.
+
+---
+
 ##  Email Sending Limits
 
 - **Gmail Free Account**: 500 emails per day
@@ -338,9 +406,9 @@ The program automatically waits 1 second between each email to avoid problems.
 
 ##  What the Emails Look Like
 
-### Notification Email (Blue Header)
+### Notification Email (Gray Header)
 - Informs students their email is whitelisted
-- Tells them when voting day is (December 9, 2025, 8:00 AM - 8:00 PM)
+- Tells them when voting day is (e.g., May 15, 2026, 8:00 AM - 10:00 PM)
 - Explains they'll receive the ballot link on voting day
 - Shows alternative voting options:
   - Button to apply for different email (deadline: Dec 8, 5PM)
@@ -350,10 +418,10 @@ The program automatically waits 1 second between each email to avoid problems.
 
 ---
 
-### Ballot Link Email (Blue Header with Red Button)
+### Ballot Link Email (Gray Header)
 - Contains the actual voting link
-- Big red "VOTE" button
-- Reminds students voting closes at 8:00 PM
+- "VOTE" button
+- Reminds students voting closes at the configured time
 - Shows in-person voting option if they can't access online
 
 **[IMAGE PLACEHOLDER: Screenshot of the ballot link email as it appears in Gmail]**
@@ -366,7 +434,7 @@ If you're stuck:
 
 1. **Read the error message carefully** - it usually tells you what's wrong
 2. **Check the Common Problems section** above
-3. **Contact the technical team** at: fcbaybayseb@vsu.edu.ph
+3. **Contact the technical team** at your `CONTACT_EMAIL`
 
 ---
 
@@ -399,46 +467,54 @@ Your SEB folder should look like this:
 ```
 SEB/
 ├── send.py                     (The main program - don't edit!)
+├── gui.py                      (Visual setup and sending)
 ├── email_blast.html            (Notification email template)
 ├── email_ballot_links.html     (Ballot link email template)
+├── email_precinct.html         (Precinct email template)
+├── email_reminder.html         (Reminder email template)
 ├── .env                        (Your secret credentials - NEVER share!)
 ├── .env.example                (Example template - safe to share)
-├── students.csv                (Your student list - same for both email types)
-├── students_template.csv       (Template to help you create your CSV)
-├── emailblast.csv              (Your actual voter list - 47 students)
+├── students.csv                (Your student list)
+├── dist\sebEmailSender.exe     (Single-file Windows executable)
 └── README.md                   (This guide you're reading)
 ```
 
 ---
 
-##  Made for Faculty of Computing - Student Election Board
+##  Made for Student Election Boards
 
-This tool was created to make election email management easier and more professional. 
+This tool was created to make election email management easier and more professional.
 
-**For official concerns**: fcbaybayseb@vsu.edu.ph
+**For official concerns**: use your configured `CONTACT_EMAIL`
 
 ---
 
 ## 📝 Quick Command Reference
 
 ```bash
-# Send notification emails to all students (with default 3-second delay between emails)
+# Send notification emails to all students (with default 30-second delay between emails)
 python send.py --mode batch --type blast --csv students.csv
 
 # Send ballot links on voting day (uses same CSV, ballot link from .env)
 python send.py --mode batch --type ballot_links --csv students.csv
 
+# Send physical precinct details
+python send.py --mode batch --type precinct --csv students.csv
+
+# Send reminder email (2 days before election)
+python send.py --mode batch --type reminder --csv students.csv
+
 # Test with one email first
 python send.py --mode single --type blast --email test@vsu.edu.ph --name "Test User" --id 2021-00000
 
-# Send immediately without countdown (still has 3-second delay between emails)
+# Send immediately without countdown (still has 30-second delay between emails)
 python send.py --mode batch --type blast --csv students.csv --delay 0
 
 # Increase delay between emails to prevent spam (5 seconds)
 python send.py --mode batch --type blast --csv students.csv --email-delay 5
 
-# Send with longer delays for maximum anti-spam protection (10 seconds between emails)
-python send.py --mode batch --type blast --csv students.csv --email-delay 10
+# Send with longer delays for maximum anti-spam protection (60 seconds between emails)
+python send.py --mode batch --type blast --csv students.csv --email-delay 60
 ```
 
 ---
