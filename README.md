@@ -150,9 +150,9 @@ CONTACT_EMAIL=your_contact_email@vsu.edu.ph
 Create a file called `students.csv` with these columns:
 
 ```
-email,name,student_id
-juan.delacruz@vsu.edu.ph,Juan Dela Cruz,2021-12345
-maria.santos@vsu.edu.ph,Maria Santos,2021-67890
+email,name
+juan.delacruz@vsu.edu.ph,Juan Dela Cruz
+maria.santos@vsu.edu.ph,Maria Santos
 ```
 
 ![Project Screenshot](https://drive.google.com/uc?export=view&id=1P6wsM6jTXvygUVjigHg6ji1MDXRb137C)
@@ -160,7 +160,7 @@ maria.santos@vsu.edu.ph,Maria Santos,2021-67890
 
 **How to create this in Excel:**
 1. Open Excel
-2. Create three columns: `email`, `name`, `student_id`
+2. Create two columns: `email`, `name`
 3. Fill in your student data
 4. Click **File** → **Save As**
 5. Choose **CSV (Comma delimited) (*.csv)** as the file type
@@ -173,9 +173,9 @@ maria.santos@vsu.edu.ph,Maria Santos,2021-67890
 Use the **SAME** CSV file as notifications! The ballot link comes from your `.env` file, not the CSV.
 
 ```
-email,name,student_id
-juan.delacruz@vsu.edu.ph,Juan Dela Cruz,2021-12345
-maria.santos@vsu.edu.ph,Maria Santos,2021-67890
+email,name
+juan.delacruz@vsu.edu.ph,Juan Dela Cruz
+maria.santos@vsu.edu.ph,Maria Santos
 ```
 
 **Note**: All students will receive the same Google Form ballot link that you configured in `BALLOT_LINK` in your `.env` file.
@@ -248,25 +248,25 @@ python send.py --mode batch --type reminder --csv students.csv
 ### Send to Just One Student (Test)
 
 ```
-python send.py --mode single --type blast --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+python send.py --mode single --type blast --email student@vsu.edu.ph --name "Juan Dela Cruz"
 ```
 
 ### Send Ballot Link to One Student
 
 ```
-python send.py --mode single --type ballot_links --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+python send.py --mode single --type ballot_links --email student@vsu.edu.ph --name "Juan Dela Cruz"
 ```
 
 ### Send Precinct Details to One Student
 
 ```
-python send.py --mode single --type precinct --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+python send.py --mode single --type precinct --email student@vsu.edu.ph --name "Juan Dela Cruz"
 ```
 
 ### Send Reminder to One Student
 
 ```
-python send.py --mode single --type reminder --email student@vsu.edu.ph --name "Juan Dela Cruz" --id 2021-12345
+python send.py --mode single --type reminder --email student@vsu.edu.ph --name "Juan Dela Cruz"
 ```
 
 ### Send Immediately (No 30-Second Wait)
@@ -380,8 +380,8 @@ Tell students to:
 **Solution**: 
 1. Open your CSV file in Excel
 2. Make sure the first row has the exact column names (no extra spaces):
-   - For notifications: `email,name,student_id`
-   - For ballot links: `email,name,student_id`
+   - For notifications: `email,name`
+   - For ballot links: `email,name`
 
 **[IMAGE PLACEHOLDER: Screenshot highlighting the correct CSV header row format]**
 

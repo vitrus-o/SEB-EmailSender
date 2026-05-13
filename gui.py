@@ -121,15 +121,11 @@ def parse_csv(csv_path):
 
     email_col = None
     name_col = None
-    id_col = None
-
     for key in headers:
         if key == "email":
             email_col = headers[key]
         elif key in {"name", "student_name"}:
             name_col = headers[key]
-        elif key in {"id", "student_id"}:
-            id_col = headers[key]
 
     for key in headers:
         if key.endswith("_emailed"):
@@ -138,28 +134,23 @@ def parse_csv(csv_path):
             email_col = headers[key]
         elif not name_col and "name" in key:
             name_col = headers[key]
-        elif not id_col and ("id" in key or "student" in key):
-            id_col = headers[key]
-
     missing_cols = []
     if not email_col:
         missing_cols.append("email")
     if not name_col:
         missing_cols.append("name")
-    if not id_col:
-        missing_cols.append("student_id")
 
     if missing_cols:
         raise ValueError(
             "CSV is missing required columns: "
             + ", ".join(missing_cols)
-            + ". Expected: email,name,student_id"
+            + ". Expected: email,name"
         )
 
     if not fieldnames:
         fieldnames = list(rows[0].keys())
 
-    return rows, fieldnames, email_col, name_col, id_col
+    return rows, fieldnames, email_col, name_col
 
 
 def status_is_sent(value):
@@ -276,17 +267,12 @@ class EmailSenderGui:
         single_row.pack(fill=tk.X, pady=6)
         self.single_email_var = tk.StringVar()
         self.single_name_var = tk.StringVar()
-        self.single_id_var = tk.StringVar()
-
         ttk.Label(single_row, text="Single Email").pack(side=tk.LEFT)
         self.single_email_entry = ttk.Entry(single_row, textvariable=self.single_email_var, width=28)
         self.single_email_entry.pack(side=tk.LEFT, padx=6)
         ttk.Label(single_row, text="Name").pack(side=tk.LEFT)
         self.single_name_entry = ttk.Entry(single_row, textvariable=self.single_name_var, width=22)
         self.single_name_entry.pack(side=tk.LEFT, padx=6)
-        ttk.Label(single_row, text="Student ID").pack(side=tk.LEFT)
-        self.single_id_entry = ttk.Entry(single_row, textvariable=self.single_id_var, width=14)
-        self.single_id_entry.pack(side=tk.LEFT, padx=6)
 
         timing_row = ttk.Frame(send_frame)
         timing_row.pack(fill=tk.X, pady=6)
@@ -324,7 +310,6 @@ class EmailSenderGui:
 
         self.single_email_entry.configure(state=single_state)
         self.single_name_entry.configure(state=single_state)
-        self.single_id_entry.configure(state=single_state)
 
     def browse_csv(self):
         path = filedialog.askopenfilename(
@@ -424,33 +409,31 @@ class EmailSenderGui:
         else:
             email = self.single_email_var.get().strip()
             name = self.single_name_var.get().strip()
-            student_id = self.single_id_var.get().strip()
-
-            if not all([email, name, student_id]):
-                messagebox.showerror("Missing Info", "Please fill in email, name, and student ID.")
+            if not all([email, name]):
+                messagebox.showerror("Missing Info", "Please fill in email and name.")
                 return
 
             thread = threading.Thread(
                 target=self.run_single,
-                args=(email_type, email, name, student_id, delay),
+                args=(email_type, email, name, delay),
                 daemon=True,
             )
 
         thread.start()
 
-    def run_single(self, email_type, email, name, student_id, delay):
+    def run_single(self, email_type, email, name, delay):
         self.logger.write("Preparing single email...")
         if not self.wait_with_cancel(delay, "Sending will start in"):
             return
 
         if email_type == "blast":
-            result = send.send_blast_email(email, name, student_id)
+            result = send.send_blast_email(email, name)
         elif email_type == "ballot_links":
-            result = send.send_ballot_links_email(email, name, student_id)
+            result = send.send_ballot_links_email(email, name)
         elif email_type == "precinct":
-            result = send.send_precinct_email(email, name, student_id)
+            result = send.send_precinct_email(email, name)
         else:
-            result = send.send_reminder_email(email, name, student_id)
+            result = send.send_reminder_email(email, name)
 
         if result:
             self.logger.write("Single email sent successfully.")
@@ -460,7 +443,7 @@ class EmailSenderGui:
     def run_batch(self, csv_path, email_type, delay, email_delay):
         self.logger.write("Loading CSV...")
         try:
-            rows, fieldnames, email_col, name_col, id_col = parse_csv(csv_path)
+            rows, fieldnames, email_col, name_col = parse_csv(csv_path)
         except Exception as exc:
             self.logger.write(f"Error: {exc}")
             return
@@ -489,18 +472,16 @@ class EmailSenderGui:
 
             recipient = row.get(email_col, "").strip()
             name = row.get(name_col, "").strip()
-            student_id = row.get(id_col, "").strip()
-
             self.logger.write(f"[{idx}/{len(rows)}] Sending to {name} <{recipient}>...")
 
             if email_type == "blast":
-                result = send.send_blast_email(recipient, name, student_id)
+                result = send.send_blast_email(recipient, name)
             elif email_type == "ballot_links":
-                result = send.send_ballot_links_email(recipient, name, student_id)
+                result = send.send_ballot_links_email(recipient, name)
             elif email_type == "precinct":
-                result = send.send_precinct_email(recipient, name, student_id)
+                result = send.send_precinct_email(recipient, name)
             else:
-                result = send.send_reminder_email(recipient, name, student_id)
+                result = send.send_reminder_email(recipient, name)
 
             if result:
                 success_count += 1

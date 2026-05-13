@@ -86,13 +86,12 @@ def read_file_content(filepath):
         print(f"Error reading file {filepath}: {e}")
         return None
 
-def send_blast_email(recipient_email, student_name, student_id, max_retries=3):
+def send_blast_email(recipient_email, student_name, max_retries=3):
     """
     Sends a customized HTML blast notification email.
 
     :param recipient_email: The student's whitelisted email address.
     :param student_name: The name of the student.
-    :param student_id: The student's ID number.
     """
 
     html_template = read_file_content(BLAST_TEMPLATE_PATH)
@@ -100,13 +99,18 @@ def send_blast_email(recipient_email, student_name, student_id, max_retries=3):
         return False
     
     html_content = html_template
+
+    precinct_location = (PRECINCT_LOCATION or "").strip()
+    if precinct_location:
+        precinct_location_message = precinct_location
+    else:
+        precinct_location_message = "To be announced. You will be notified later."
     
     replacements = {
         '[STUDENT NAME]': student_name,
-        '[STUDENT ID NO.]': student_id,
         '[WHITELISTED EMAIL]': recipient_email,
         '[ALTERNATIVE EMAIL FORM LINK]': ALTERNATIVE_EMAIL_FORM_LINK,
-        '[PRECINCT LOCATION]': PRECINCT_LOCATION,
+        '[PRECINCT LOCATION MESSAGE]': precinct_location_message,
         '[ORG NAME]': ORG_NAME,
         '[CONTACT EMAIL]': CONTACT_EMAIL
     }
@@ -155,13 +159,12 @@ def send_blast_email(recipient_email, student_name, student_id, max_retries=3):
     return False
 
 
-def send_ballot_links_email(recipient_email, student_name, student_id, max_retries=3):
+def send_ballot_links_email(recipient_email, student_name, max_retries=3):
     """
     Sends a customized HTML email with ballot link.
 
     :param recipient_email: The student's whitelisted email address.
     :param student_name: The name of the student.
-    :param student_id: The student's ID number.
     """
 
     html_template = read_file_content(BALLOT_LINKS_TEMPLATE_PATH)
@@ -172,7 +175,6 @@ def send_ballot_links_email(recipient_email, student_name, student_id, max_retri
     
     replacements = {
         '[STUDENT NAME]': student_name,
-        '[STUDENT ID NO.]': student_id,
         '[WHITELISTED EMAIL]': recipient_email,
         '[SPECIAL ELECTION LINK]': BALLOT_LINK,
         '[ELECTION LINK]': BALLOT_LINK,
@@ -225,7 +227,7 @@ def send_ballot_links_email(recipient_email, student_name, student_id, max_retri
     return False
 
 
-def send_precinct_email(recipient_email, student_name, student_id, max_retries=3):
+def send_precinct_email(recipient_email, student_name, max_retries=3):
     """
     Sends a customized HTML email with physical precinct details.
     """
@@ -238,7 +240,6 @@ def send_precinct_email(recipient_email, student_name, student_id, max_retries=3
 
     replacements = {
         '[STUDENT NAME]': student_name,
-        '[STUDENT ID NO.]': student_id,
         '[WHITELISTED EMAIL]': recipient_email,
         '[PRECINCT LOCATION]': PRECINCT_LOCATION,
         '[ORG NAME]': ORG_NAME,
@@ -289,7 +290,7 @@ def send_precinct_email(recipient_email, student_name, student_id, max_retries=3
     return False
 
 
-def send_reminder_email(recipient_email, student_name, student_id, max_retries=3):
+def send_reminder_email(recipient_email, student_name, max_retries=3):
     """
     Sends a reminder email for the upcoming election.
     """
@@ -302,7 +303,6 @@ def send_reminder_email(recipient_email, student_name, student_id, max_retries=3
 
     replacements = {
         '[STUDENT NAME]': student_name,
-        '[STUDENT ID NO.]': student_id,
         '[WHITELISTED EMAIL]': recipient_email,
         '[ALTERNATIVE EMAIL FORM LINK]': ALTERNATIVE_EMAIL_FORM_LINK,
         '[PRECINCT LOCATION]': PRECINCT_LOCATION,
@@ -387,7 +387,7 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     Process batch emails from CSV file.
     
     CSV format for all email types:
-    email,name,student_id
+    email,name
     
     :param email_delay: Delay in seconds between each email (default: 3 seconds)
     """
@@ -414,15 +414,11 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     # Map expected columns to actual CSV columns
     email_col = None
     name_col = None
-    id_col = None
-    
     for key in headers:
         if key == 'email':
             email_col = headers[key]
         elif key in {'name', 'student_name'}:
             name_col = headers[key]
-        elif key in {'id', 'student_id'}:
-            id_col = headers[key]
 
     for key in headers:
         if key.endswith('_emailed'):
@@ -431,8 +427,6 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
             email_col = headers[key]
         elif not name_col and 'name' in key:
             name_col = headers[key]
-        elif not id_col and ('id' in key or 'student' in key):
-            id_col = headers[key]
     
     # Validate required columns exist
     missing_cols = []
@@ -440,13 +434,11 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
         missing_cols.append('email')
     if not name_col:
         missing_cols.append('name')
-    if not id_col:
-        missing_cols.append('student_id')
     
     if missing_cols:
         print(f"❌ Error: CSV is missing required columns: {', '.join(missing_cols)}")
         print(f"Available columns: {', '.join(first_row.keys())}")
-        print(f"\nExpected format: email,name,student_id")
+        print(f"\nExpected format: email,name")
         return
     
     if not fieldnames:
@@ -464,7 +456,7 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
     print(f"Delay between emails: {email_delay} seconds")
 
     for i, row in enumerate(pending_rows, 1):
-        print(f"  {i}. {row[name_col]} ({row[id_col]}) - {row[email_col]}")
+        print(f"  {i}. {row[name_col]} - {row[email_col]}")
     
     confirm = input(f"\nDo you want to proceed with sending {len(pending_rows)} emails? (yes/no): ").strip().lower()
     if confirm not in ['yes', 'y']:
@@ -496,26 +488,22 @@ def process_csv_batch(csv_file, email_type, delay=0, email_delay=DEFAULT_DELAY_B
             if email_type == 'blast':
                 result = send_blast_email(
                     recipient_email=row[email_col],
-                    student_name=row[name_col],
-                    student_id=row[id_col]
+                    student_name=row[name_col]
                 )
             elif email_type == 'ballot_links':
                 result = send_ballot_links_email(
                     recipient_email=row[email_col],
-                    student_name=row[name_col],
-                    student_id=row[id_col]
+                    student_name=row[name_col]
                 )
             elif email_type == 'precinct':
                 result = send_precinct_email(
                     recipient_email=row[email_col],
-                    student_name=row[name_col],
-                    student_id=row[id_col]
+                    student_name=row[name_col]
                 )
             elif email_type == 'reminder':
                 result = send_reminder_email(
                     recipient_email=row[email_col],
-                    student_name=row[name_col],
-                    student_id=row[id_col]
+                    student_name=row[name_col]
                 )
             
             if result:
@@ -551,7 +539,6 @@ def send_single_with_delay(email_func, delay, **kwargs):
     print(f"\nEmail Preview:")
     print(f"To: {kwargs.get('recipient_email')}")
     print(f"Name: {kwargs.get('student_name')}")
-    print(f"Student ID: {kwargs.get('student_id')}")
     
     confirm = input(f"\nProceed with sending this email? (yes/no): ").strip().lower()
     if confirm not in ['yes', 'y']:
@@ -577,7 +564,6 @@ if __name__ == '__main__':
     
     parser.add_argument('--email', help='Recipient email address')
     parser.add_argument('--name', help='Student name')
-    parser.add_argument('--id', help='Student ID')
     
     parser.add_argument('--csv', help='Path to CSV file for batch processing')
     
@@ -593,40 +579,36 @@ if __name__ == '__main__':
     
     try:
         if args.mode == 'single':
-            if not all([args.email, args.name, args.id]):
-                print("❌ Error: --email, --name, and --id are required for single mode")
+            if not all([args.email, args.name]):
+                print("❌ Error: --email and --name are required for single mode")
                 parser.print_help()
             elif args.type == 'blast':
                 send_single_with_delay(
                     send_blast_email,
                     delay=args.delay,
                     recipient_email=args.email,
-                    student_name=args.name,
-                    student_id=args.id
+                    student_name=args.name
                 )
             elif args.type == 'ballot_links':
                 send_single_with_delay(
                     send_ballot_links_email,
                     delay=args.delay,
                     recipient_email=args.email,
-                    student_name=args.name,
-                    student_id=args.id
+                    student_name=args.name
                 )
             elif args.type == 'precinct':
                 send_single_with_delay(
                     send_precinct_email,
                     delay=args.delay,
                     recipient_email=args.email,
-                    student_name=args.name,
-                    student_id=args.id
+                    student_name=args.name
                 )
             elif args.type == 'reminder':
                 send_single_with_delay(
                     send_reminder_email,
                     delay=args.delay,
                     recipient_email=args.email,
-                    student_name=args.name,
-                    student_id=args.id
+                    student_name=args.name
                 )
         elif args.mode == 'batch':
             if not args.csv:
